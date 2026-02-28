@@ -1,6 +1,6 @@
 [project]
-name = "kagi"
-version = "0.1.0"
+name = "kagi-cli"
+dynamic = ["version"]
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -28,11 +28,14 @@ dev = [
 asyncio_mode = "auto"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["kagi_client"]
+
+[tool.hatch.version]
+source = "vcs"
 
 [tool.ruff]
 line-length = 88

@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+from importlib import metadata as importlib_metadata
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -615,6 +616,38 @@ class TestHelp:
         result = runner.invoke(app, ["--help"])
         assert result.exit_code == 0
         assert "proofread" in result.output
+
+
+class TestVersion:
+    @patch("kagi_client.cli.subprocess.run")
+    def test_uses_git_exact_tag(self, mock_run: Any) -> None:
+        mock_run.return_value = MagicMock(stdout="v1.2.3\n")
+        app = _import_app()
+        result = runner.invoke(app, ["--version"])
+        assert result.exit_code == 0
+        assert result.output.strip() == "v1.2.3"
+
+    @patch("kagi_client.cli.metadata.version")
+    @patch("kagi_client.cli.subprocess.run", side_effect=OSError)
+    def test_falls_back_to_package_metadata(
+        self, _mock_run: Any, mock_version: Any
+    ) -> None:
+        mock_version.return_value = "1.2.4"
+        app = _import_app()
+        result = runner.invoke(app, ["--version"])
+        assert result.exit_code == 0
+        assert result.output.strip() == "1.2.4"
+
+    @patch("kagi_client.cli.metadata.version")
+    @patch("kagi_client.cli.subprocess.run", side_effect=OSError)
+    def test_unknown_when_no_git_and_no_package_metadata(
+        self, _mock_run: Any, mock_version: Any
+    ) -> None:
+        mock_version.side_effect = importlib_metadata.PackageNotFoundError
+        app = _import_app()
+        result = runner.invoke(app, ["--version"])
+        assert result.exit_code == 0
+        assert result.output.strip() == "0.0.0+unknown"
 
 
 # -- Format option tests --

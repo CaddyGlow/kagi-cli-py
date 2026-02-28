@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import os
+import subprocess
 import sys
 from html.parser import HTMLParser
+from importlib import metadata
 from typing import Annotated
 
 import typer
@@ -169,6 +171,39 @@ def _split_thinking(html: str) -> tuple[str, str]:
 # -- Helpers --
 
 
+def _resolve_version() -> str:
+    # Prefer the checked-out git tag so `kagi --version` follows releases.
+    git_commands = [
+        ["git", "describe", "--tags", "--exact-match"],
+        ["git", "describe", "--tags", "--always", "--dirty"],
+    ]
+    for command in git_commands:
+        try:
+            result = subprocess.run(
+                command,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            version = result.stdout.strip()
+            if version:
+                return version
+        except (subprocess.SubprocessError, OSError):
+            continue
+
+    try:
+        return metadata.version("kagi-cli")
+    except metadata.PackageNotFoundError:
+        return "0.0.0+unknown"
+
+
+def _version_callback(value: bool) -> None:
+    if not value:
+        return
+    typer.echo(_resolve_version())
+    raise typer.Exit(code=0)
+
+
 def _get_session() -> str:
     session = os.environ.get("KAGI_SESSION", "")
     if not session:
@@ -191,6 +226,23 @@ FormatOption = Annotated[
 
 
 # -- Commands --
+
+
+@app.callback()
+def main(
+    version: Annotated[
+        bool,
+        typer.Option(
+            "--version",
+            "-V",
+            callback=_version_callback,
+            is_eager=True,
+            help="Show version and exit.",
+        ),
+    ] = False,
+) -> None:
+    """Kagi CLI."""
+    _ = version
 
 
 @app.command()

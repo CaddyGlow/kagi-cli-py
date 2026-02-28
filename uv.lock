@@ -110,8 +110,7 @@ wheels = [
 ]
 
 [[package]]
-name = "kagi"
-version = "0.1.0"
+name = "kagi-cli"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
